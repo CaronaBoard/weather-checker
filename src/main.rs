@@ -5,8 +5,12 @@ extern crate hyper;
 extern crate tokio_core;
 use futures::{Future, Stream};
 use hyper::Client;
+use hyper::Uri;
+use hyper::Chunk;
+use hyper::error::UriError;
 use tokio_core::reactor::Core;
 use std::str;
+use std::env;
 
 #[macro_use]
 extern crate serde_derive;
@@ -21,29 +25,28 @@ struct Weather {
     main: String,
 }
 
-fn main() {
-    let mut core = Core::new().unwrap();
-    let client = Client::new(&core.handle());
-    let uri = format!(
-        "{}{}",
+fn open_weather_uri(api_key: String) -> Result<Uri, UriError> {
+    format!(
+        "{}{}{}",
         "http://api.openweathermap.org/data/2.5/",
-        "weather?q=Porto+Alegre&APPID=APPKEY"
+        "weather?q=Porto+Alegre&APPID=",
+        api_key
     ).parse()
-        .unwrap();
+}
 
-    let work = client.get(uri).and_then(|res| {
-        println!("Response: {}", res.status());
+fn request_weather(core: &mut Core, uri: Uri) -> Result<Chunk, hyper::Error> {
+    let client = Client::new(&core.handle());
+    let work = client.get(uri).and_then(|res| res.body().concat2());
+    core.run(work)
+}
 
-        res.body().concat2()
-    });
-    let data = core.run(work).unwrap();
-    let json = str::from_utf8(&data).unwrap();
+fn main() {
+    let api_key = env::var("API_KEY").expect("API_KEY not set");
+    let uri = open_weather_uri(api_key).unwrap();
+    let mut core = Core::new().unwrap();
+    let request = request_weather(&mut core, uri).unwrap();
+    let json = str::from_utf8(&request).unwrap();
+    let weather: WeatherResponse = serde_json::from_str(json).unwrap();
 
-    // Parse the string of data into a Person object. This is exactly the
-    // same function as the one that produced serde_json::Value above, but
-    // now we are asking it for a Person as output.
-    let w: WeatherResponse = serde_json::from_str(json).unwrap();
-
-    // Do things just like with any other Rust data structure.
-    println!("Current weather: {}", w.weather[0].main);
+    println!("Current weather: {}", weather.weather[0].main);
 }
