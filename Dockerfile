@@ -10,5 +10,7 @@ RUN cargo init
 COPY Cargo.toml Cargo.lock ./
 RUN cargo build --release
 
-COPY . .
+COPY src/ src/
 RUN cargo build --release
+
+COPY . .
