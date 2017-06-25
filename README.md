@@ -26,3 +26,15 @@ make run
 
 For development mode, you can use `cargo run` instead of make, to run it
 outside docker.
+
+## Deploy
+
+The deploy is currently manual, to heroku. To run it:
+
+```bash
+heroku plugins:install heroku-container-registry
+heroku container:login
+heroku container:push web
+```
+
+That's it!
