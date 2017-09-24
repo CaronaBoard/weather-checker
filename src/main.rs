@@ -4,6 +4,8 @@ extern crate futures;
 extern crate hyper;
 extern crate tokio_core;
 extern crate lettre;
+extern crate chrono;
+extern crate time;
 use futures::{Future, Stream};
 use hyper::Client;
 use hyper::Uri;
@@ -19,6 +21,7 @@ use lettre::transport::smtp::{SecurityLevel, SmtpTransportBuilder};
 use lettre::transport::smtp::authentication::Mechanism;
 use lettre::transport::smtp::SUBMISSION_PORT;
 use lettre::transport::EmailTransport;
+use chrono::Datelike;
 
 #[macro_use]
 extern crate serde_derive;
@@ -84,6 +87,11 @@ fn send_email(
 }
 
 fn main() {
+    let weekday = chrono::Local::now().weekday();
+    if weekday == chrono::Weekday::Sat || weekday == chrono::Weekday::Sun {
+        panic!("This script does not run on weekends, exiting...");
+    }
+
     let api_key = env::var("API_KEY").expect("API_KEY not set");
     let email_to = env::var("EMAIL_TO").expect("EMAIL_TO not set");
     let smtp_pass = env::var("SMTP_PASS").expect("SMTP_PASS not set");
